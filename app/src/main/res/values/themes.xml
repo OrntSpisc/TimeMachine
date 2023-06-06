@@ -1,0 +1,16 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.TimeMachine" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/blue</item>
+        <item name="colorPrimaryVariant">#181FA1</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">#673AB7</item>
+        <item name="colorSecondaryVariant">#907AB8</item>
+        <item name="colorError">#C80303</item>
+        <item name="android:colorBackground">@color/black</item>
+        <item name="colorSurface">@color/almostblack</item>
+        <item name="colorOnBackground">@color/white</item>
+    </style>
+
+    <style name="Theme.MyCalc" parent="Base.Theme.TimeMachine" />
+</resources>
