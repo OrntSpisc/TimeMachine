@@ -7,14 +7,17 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import java.math.RoundingMode
+import java.text.DecimalFormat
 import java.util.Timer
 import java.util.TimerTask
 
 class StopwatchService : Service() {
     private var isRunning = false
-    private var timeElapsed: Int = 0
+    private var timeElapsed: Double = 0.0
     private lateinit var timer: Timer
     private lateinit var updateTimer: Timer
     private lateinit var notificationManager: NotificationManager
@@ -23,11 +26,14 @@ class StopwatchService : Service() {
     override fun onBind(p0: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        //Intiializer notification channel and manager
         createNotificationChannel()
         getNotificationManager()
 
+        //Get action extra from fragment
         val action = intent?.getStringExtra(STOPWATCH_ACTION)
 
+        //Action keyword conditions
         when (action) {
             "START" -> startStopwatch()
             "PAUSE" -> pauseStopwatch()
@@ -42,7 +48,7 @@ class StopwatchService : Service() {
 
     private fun resetStopwatch() {
         pauseStopwatch()
-        timeElapsed = 0
+        timeElapsed = 0.0
         isRunning = false
         getStatus()
     }
@@ -50,21 +56,25 @@ class StopwatchService : Service() {
 
     private fun startStopwatch() {
         isRunning = true
+
+        //Initialize timer here for pausing ability
         timer = Timer()
 
         getStatus()
 
+        //Start timer object
         timer.scheduleAtFixedRate(object : TimerTask()
         {
             override fun run() {
+                //Do every 10 milliseconds
+                //Send broadcast of time elapsed with "STOPWATCH_TICK" action
                 val intent = Intent("STOPWATCH_TICK")
-                timeElapsed++
-
+                timeElapsed += 0.01
                 intent.putExtra(TIME_ELAPSED, timeElapsed)
                 sendBroadcast(intent)
             }
         },
-            0, 1000)
+            0, 10)
 
     }
 
@@ -75,6 +85,7 @@ class StopwatchService : Service() {
     }
 
     private fun getStatus() {
+        //Broadcast stopwatch status (running state and time elapsed)
         val statusIntent = Intent()
         statusIntent.action = "STOPWATCH_STATUS"
         statusIntent.putExtra(ISRUNNING, isRunning)
@@ -82,9 +93,12 @@ class StopwatchService : Service() {
         sendBroadcast(statusIntent)
     }
 
+    //Start foreground service when fragment is closed
     private fun moveToForeground() {
         if (isRunning) {
             startForeground(1, buildNotification())
+
+            //Create new timer object for notification
             updateTimer = Timer()
 
             updateTimer.scheduleAtFixedRate(object : TimerTask() {
@@ -97,20 +111,28 @@ class StopwatchService : Service() {
     }
     //Update notification
     private fun updateNotification() {
+        //Send notification with id: 1
         notificationManager.notify(1, buildNotification())
     }
 
     private fun buildNotification() : Notification {
+        //Stopwatch state notification title
         val title = if (isRunning) {
             "Stopwatch is running!"
         } else {
             "Stopwatch is paused!"
         }
 
-        val hours: Int = timeElapsed / 60 / 60
-        val minutes: Int = timeElapsed / 60
-        val seconds: Int = timeElapsed % 60
+        //Convert seconds to time
+        var hours: Int = (timeElapsed / 60 / 60).toInt()
+        var minutes: Int = (timeElapsed / 60).toInt()
+        if (minutes > 59) {
+            hours++
+            minutes = 0
+        }
+        val seconds: Int = (timeElapsed % 60).toInt()
 
+        //PendingIntent for handling notification click
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             this,
@@ -119,6 +141,7 @@ class StopwatchService : Service() {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        //Return a Notification
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle(title)
             .setOngoing(true)
@@ -134,11 +157,14 @@ class StopwatchService : Service() {
             .build()
     }
 
+    //Stop foreground service when reopened fragment
     private fun moveToBackground() {
         updateTimer.cancel()
         stopForeground(STOP_FOREGROUND_REMOVE)
     }
 
+
+    //Create notification channel
     private fun createNotificationChannel() {
         val notificationChannel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
@@ -151,6 +177,7 @@ class StopwatchService : Service() {
         notificationManager.createNotificationChannel(notificationChannel)
     }
 
+    //Get notification manager from systemservice
     private fun getNotificationManager() {
         notificationManager = ContextCompat.getSystemService(
             this,
@@ -158,7 +185,7 @@ class StopwatchService : Service() {
         ) as NotificationManager
     }
 
-
+    //Intent keywords
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "Stopwatch_Notifications"
 

@@ -11,6 +11,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.peter.timemachine.databinding.FragmentStopwatchBinding
+import java.math.RoundingMode
+import java.text.DecimalFormat
 
 class StopwatchFragment : Fragment() {
 
@@ -34,18 +36,19 @@ class StopwatchFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        //Start button
         binding.btnStartStopwatch.setOnClickListener {
             binding.btnStartStopwatch.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
             startTimer()
         }
 
+        //Reset button
         binding.btnStopStopwatch.setOnClickListener {
             binding.btnStopStopwatch.performHapticFeedback(HapticFeedbackConstants.REJECT)
-
-
             resetTimer()
         }
 
+        //Pause button
         binding.btnPauseStopwatch.setOnClickListener {
             binding.btnPauseStopwatch.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
 
@@ -59,11 +62,12 @@ class StopwatchFragment : Fragment() {
         }
     }
 
+    //Reset timer value, state and text
     private fun resetTimer() {
         val stopwatchService = Intent(activity, StopwatchService::class.java)
         stopwatchService.putExtra(StopwatchService.STOPWATCH_ACTION, "RESET")
         requireActivity().startService(stopwatchService)
-        updateStopwatchValue(0)
+        binding.timerText.text = "00:00.00"
         isRunning = false
         isStarted = false
 
@@ -105,6 +109,8 @@ class StopwatchFragment : Fragment() {
         super.onResume()
 
         getStopwatchStatus()
+
+        //Receive stopwatch status broadcast
         val statusFilter = IntentFilter()
         statusFilter.addAction("STOPWATCH_STATUS")
         statusReceiver = object : BroadcastReceiver() {
@@ -116,17 +122,19 @@ class StopwatchFragment : Fragment() {
         }
         requireActivity().registerReceiver(statusReceiver, statusFilter)
 
+        //Receive time elapsed broadcast
         val timeFilter = IntentFilter()
         timeFilter.addAction("STOPWATCH_TICK")
         timeReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                val timeElapsed = intent?.getIntExtra(StopwatchService.TIME_ELAPSED, 0)!!
+                val timeElapsed = intent?.getDoubleExtra(StopwatchService.TIME_ELAPSED, 0.0)!!
                 updateStopwatchValue(timeElapsed)
             }
         }
         requireActivity().registerReceiver(timeReceiver, timeFilter)
     }
 
+    //Update stopwatch layout according to status
     private fun updateLayout(running: Boolean) {
         if (running) {
             startedTimerLayout()
@@ -137,13 +145,31 @@ class StopwatchFragment : Fragment() {
         }
     }
 
-    private fun updateStopwatchValue(timeElapsed: Int) {
-        val hours: Int = timeElapsed / 60 / 60
-        val minutes: Int = timeElapsed / 60
-        val seconds: Int = timeElapsed % 60
-        binding.timerText.text = "${"%02d".format(hours)}:${"%02d".format(minutes)}:${"%02d".format(seconds)}"
+    //Update stopwatch time displayed
+    private fun updateStopwatchValue(timeElapsed: Double) {
+
+        //Rounding decimal to 2 digits
+        val decimalFormat = DecimalFormat("#.##")
+        decimalFormat.roundingMode = RoundingMode.CEILING
+
+        var hours: Int = (timeElapsed / 60 / 60).toInt()
+        var minutes: Int = (timeElapsed / 60).toInt()
+        if (minutes > 59) {
+            hours++
+            minutes = 0
+        }
+        val seconds: Int = (timeElapsed % 60).toInt()
+        val milliseconds = (((decimalFormat.format(timeElapsed).toDouble()) % 1) * 100).toInt()
+
+        //Display current time on TextView
+        if (hours != 0) {
+            binding.timerText.text = "${"%02d".format(hours)}:${"%02d".format(minutes)}:${"%02d".format(seconds)}.${"%02d".format(milliseconds)}"
+        } else {
+            binding.timerText.text = "${"%02d".format(minutes)}:${"%02d".format(seconds)}.${"%02d".format(milliseconds)}"
+        }
     }
 
+    //Start service with getting status intent
     private fun getStopwatchStatus() {
         val stopwatchService = Intent(activity, StopwatchService::class.java)
         stopwatchService.putExtra(StopwatchService.STOPWATCH_ACTION, "GET_STATUS")
@@ -180,6 +206,7 @@ class StopwatchFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        //Prevent bad things
         _binding = null
     }
 

@@ -19,11 +19,13 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        //Initializing ViewPager and Tablayout
         viewPager = binding.ViewPager
         tabLayout = binding.TabLayout
         setupViewPager2()
     }
 
+    //Setup ViewPager with fragments
     private fun setupViewPager2() {
         viewPager.adapter = ViewPagerAdapter(this)
 
@@ -35,6 +37,7 @@ class MainActivity : AppCompatActivity() {
         }.attach()
     }
 
+    //Return to first fragment on back pressed
     override fun onBackPressed() {
         if (viewPager.currentItem == 0) {
             super.onBackPressed()
