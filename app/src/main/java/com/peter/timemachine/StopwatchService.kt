@@ -14,6 +14,7 @@ import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.util.Timer
 import java.util.TimerTask
+import kotlin.math.floor
 
 class StopwatchService : Service() {
     private var isRunning = false
@@ -26,7 +27,7 @@ class StopwatchService : Service() {
     override fun onBind(p0: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        //Intiializer notification channel and manager
+        //Initialize notification channel and manager
         createNotificationChannel()
         getNotificationManager()
 
@@ -125,11 +126,7 @@ class StopwatchService : Service() {
 
         //Convert seconds to time
         var hours: Int = (timeElapsed / 60 / 60).toInt()
-        var minutes: Int = (timeElapsed / 60).toInt()
-        if (minutes > 59) {
-            hours++
-            minutes = 0
-        }
+        var minutes: Int = floor((timeElapsed / 60) % 60).toInt()
         val seconds: Int = (timeElapsed % 60).toInt()
 
         //PendingIntent for handling notification click
@@ -173,7 +170,7 @@ class StopwatchService : Service() {
         )
         notificationChannel.setSound(null, null)
         notificationChannel.setShowBadge(true)
-        notificationManager = getSystemService(NotificationManager::class.java)
+//        notificationManager = getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(notificationChannel)
     }
 

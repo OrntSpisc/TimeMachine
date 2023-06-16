@@ -1,10 +1,12 @@
 package com.peter.timemachine
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +15,7 @@ import androidx.fragment.app.Fragment
 import com.peter.timemachine.databinding.FragmentStopwatchBinding
 import java.math.RoundingMode
 import java.text.DecimalFormat
+import kotlin.math.floor
 
 class StopwatchFragment : Fragment() {
 
@@ -33,6 +36,7 @@ class StopwatchFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("InlinedApi")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -46,6 +50,7 @@ class StopwatchFragment : Fragment() {
         binding.btnStopStopwatch.setOnClickListener {
             binding.btnStopStopwatch.performHapticFeedback(HapticFeedbackConstants.REJECT)
             resetTimer()
+            binding.timerText.text = "00:00.00"
         }
 
         //Pause button
@@ -67,11 +72,11 @@ class StopwatchFragment : Fragment() {
         val stopwatchService = Intent(activity, StopwatchService::class.java)
         stopwatchService.putExtra(StopwatchService.STOPWATCH_ACTION, "RESET")
         requireActivity().startService(stopwatchService)
-        binding.timerText.text = "00:00.00"
         isRunning = false
         isStarted = false
 
         defaultTImerLayout()
+        updateStopwatchValue(0.0)
     }
 
     private fun defaultTImerLayout() {
@@ -142,6 +147,7 @@ class StopwatchFragment : Fragment() {
             binding.btnPauseStopwatch.setImageResource(R.drawable.ic_start)
         } else if (!running && !isStarted) {
             defaultTImerLayout()
+            binding.btnPauseStopwatch.setImageResource(R.drawable.ic_pause)
         }
     }
 
@@ -151,13 +157,12 @@ class StopwatchFragment : Fragment() {
         //Rounding decimal to 2 digits
         val decimalFormat = DecimalFormat("#.##")
         decimalFormat.roundingMode = RoundingMode.CEILING
+        Log.d("TimeElapsed", timeElapsed.toString())
 
         var hours: Int = (timeElapsed / 60 / 60).toInt()
-        var minutes: Int = (timeElapsed / 60).toInt()
-        if (minutes > 59) {
-            hours++
-            minutes = 0
-        }
+        Log.d("Hours", hours.toString())
+        var minutes: Int = floor((timeElapsed / 60) % 60).toInt()
+        Log.d("Minutes", minutes.toString())
         val seconds: Int = (timeElapsed % 60).toInt()
         val milliseconds = (((decimalFormat.format(timeElapsed).toDouble()) % 1) * 100).toInt()
 
